@@ -18,7 +18,7 @@ import sys, os, glob
 # netflix_read
 # ------------
 
-def netflix_read (r) :
+def netflix_read (r, trainingSetDir) :
     """
     reads the input and parses it into preference dictionaries
     r is a reader
@@ -27,31 +27,8 @@ def netflix_read (r) :
     return a list of [dict (person, array of preferences) pairs, and dict women ranks]
     """
     
-    if len(sys.argv) != 4 : 
-        exit("Usage: python RunNetflix.py <movie titles file> <training set directory> <probe file>")
-    else :
-        movieTitlesFile = sys.argv[1]
-        trainingSetDir = sys.argv[2]
-        probeFile = sys.argv[3]
+    #netflix_train(trainingSetDir)
     
-    # Compute average movie ratings
-#    movieIDAvgRating = {}
-#    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
-#        average = 0.0
-#        totalStars = 0.0
-#        with open(file, 'r') as f_myfile:
-#            lines = f_myfile.readlines()
-#            movieID = lines[0].strip(':\r\n')
-#            numRatings = len(lines) - 1
-#            for custIDRatingDateLine in lines[1:] :
-#                custIDRatingDateList = custIDRatingDateLine.strip().split(',')
-#                totalStars += float(custIDRatingDateList[1])
-#            average = totalStars / numRatings
-#            assert 1.0 <= average <= 5.0
-#            assert 1 <= int(movieID) <= 17770
-#            movieIDAvgRating[movieID] = average
-#            print movieID + "=" + str(average)
-           
     # Create dictionary of (movie ID, average rating) from precomputed file
     movieIDAvgRating = {}
     with open('extra/movieIDAvgRatings.in', 'r') as f_myfile:
@@ -62,16 +39,34 @@ def netflix_read (r) :
             average = movieIDAvgRatingsList[1]
             movieIDAvgRating[movieID] = average
     
-    print len(movieIDAvgRating)
-    ret = 1
-    assert ret
-    return ret
+    #print len(movieIDAvgRating)
+    assert movieIDAvgRating
+    return movieIDAvgRating
+
+def netflix_train (trainingSetDir):
+    # Compute average ratings for each movie
+    movieIDAvgRating = {}
+    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
+        average = 0.0
+        totalStars = 0.0
+        with open(file, 'r') as f_myfile:
+            lines = f_myfile.readlines()
+            movieID = lines[0].strip(':\r\n')
+            numRatings = len(lines) - 1
+            for custIDRatingDateLine in lines[1:] :
+                custIDRatingDateList = custIDRatingDateLine.strip().split(',')
+                totalStars += float(custIDRatingDateList[1])
+            average = totalStars / numRatings
+            assert 1.0 <= average <= 5.0
+            assert 1 <= int(movieID) <= 17770
+            movieIDAvgRating[movieID] = average
+            print movieID + "=" + str(average)
 
 # ------------
 # netflix_eval
 # ------------
 
-def netflix_eval (womenPrefs, menPrefs, ranks) :
+def netflix_eval (movieIDAvgRating, probeFile) :
     """
     Attempts to match the men with the women such that if a man m
     prefers some woman w more than his wife, then w likes her 
@@ -81,13 +76,23 @@ def netflix_eval (womenPrefs, menPrefs, ranks) :
     return the engaged (men, women) pairs
     """
     
+    # Iterate through probe file
+    with open(probeFile, 'r') as f_myfile:
+        lines = f_myfile.readlines()
+        #movieID = lines[0].strip(':\r\n')
+        test = lines.split(':')
+        print test
+        for line in lines[1:] :
+            custID = line.strip()
+            pred = movieIDAvgRating[movieID]
+            print pred
     return 0
 
 # -------------
 # netflix_print
 # -------------
 
-def netflix_print (w, engagedMen) :
+def netflix_print (w, movieID, pred) :
     """
     prints the key-value pairs of engaged men to women
     w is a writer
@@ -106,8 +111,16 @@ def netflix_solve (r, w) :
     r is a reader
     w is a writer
     """
-
-    netflix_read(r)
+    if len(sys.argv) != 4 : 
+        exit("Usage: python RunNetflix.py <movie titles file> <training set directory> <probe file>")
+    else :
+        movieTitlesFile = sys.argv[1]
+        trainingSetDir = sys.argv[2]
+        probeFile = sys.argv[3]
+    
+    movieIDAvgRating = {}
+    movieIDAvgRating = netflix_read(r, trainingSetDir)
+    netflix_eval(movieIDAvgRating, probeFile)
 
     
         
