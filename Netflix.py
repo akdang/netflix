@@ -66,7 +66,7 @@ def netflix_train (trainingSetDir):
 # netflix_eval
 # ------------
 
-def netflix_eval (movieIDAvgRating, probeFile) :
+def netflix_eval (w, movieIDAvgRating, probeFile) :
     """
     Attempts to match the men with the women such that if a man m
     prefers some woman w more than his wife, then w likes her 
@@ -75,31 +75,37 @@ def netflix_eval (movieIDAvgRating, probeFile) :
     menPrefs is a dictionary of (men, array of preferences) pairs
     return the engaged (men, women) pairs
     """
-    
-    # Iterate through probe file
+    import re
+    # Iterate through probe file and make predictions
     with open(probeFile, 'r') as f_myfile:
         lines = f_myfile.readlines()
-        #movieID = lines[0].strip(':\r\n')
-        test = lines.split(':')
-        print test
-        for line in lines[1:] :
-            custID = line.strip()
-            pred = movieIDAvgRating[movieID]
-            print pred
-    return 0
-
+        movieID = ""
+        for line in lines :
+            # Look for movieID
+            if re.search(':$', line) :
+                movieID = line.strip(':\r\n')
+                print movieID
+            else :
+                assert movieID
+                #custID
+                #custID = line.strip()
+                pred = movieIDAvgRating[movieID]
+                print pred
+                
 # -------------
 # netflix_print
 # -------------
 
-def netflix_print (w, movieID, pred) :
+def netflix_print (w, movieID, isMovieID = False, pred = 0.0) :
     """
     prints the key-value pairs of engaged men to women
     w is a writer
     engagedMen is the dictionary of engaged (men, women)
     """
-    for k,v in sorted(engagedMen.items()):
-            w.write(k + " " + v + "\n")
+    if isMovieID :
+        w.write(movieID + ":\n")
+    else :
+        w.write(str(pred) + "\n")
 
 # -------------
 # netflix_solve
@@ -120,7 +126,7 @@ def netflix_solve (r, w) :
     
     movieIDAvgRating = {}
     movieIDAvgRating = netflix_read(r, trainingSetDir)
-    netflix_eval(movieIDAvgRating, probeFile)
+    netflix_eval(w, movieIDAvgRating, probeFile)
 
     
         
