@@ -101,8 +101,27 @@ def netflix_eval (w, movieIDAvgRating, custIDAvgRating, probeFile) :
                 predList2.append(pred)
                 #print pred
     #print len(predList2)  #1408395
+
+    predList3 = []
+    # Iterate through probe file and make predictions
+    with open(probeFile, 'r') as f_myfile:
+        lines = f_myfile.readlines()
+        movieID = ""
+        for line in lines :
+            # Look for movieID
+            if re.search(':', line) :
+                movieID = line.strip(':\r\n')
+                #print movieID
+            else :
+                assert movieID
+                custID = line.strip()
+                pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID])) / 2
+                assert type(pred) == float
+		predList3.append(pred)
+    #print len(predList2)  #1408395
+
     from RMSE import rmse
-    print rmse(predList, predList2)
+    print rmse(predList, predList3)
 # -------------
 # netflix_print
 # -------------
