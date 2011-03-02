@@ -12,7 +12,7 @@
 
 import sys
 
-from Netflix import netflix_read, netflix_eval, netflix_print, netflix_solve, netflix_train
+from Netflix import netflix_read, netflix_eval, netflix_print, netflix_solve
 
 
 # ----

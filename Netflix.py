@@ -11,7 +11,7 @@
 # -------
 
 from __future__ import with_statement
-import sys, os, glob
+import sys, os, glob, re
 
 
 # ------------
@@ -27,8 +27,6 @@ def netflix_read (r, trainingSetDir) :
     return a list of [dict (person, array of preferences) pairs, and dict women ranks]
     """
     
-    #netflix_train(trainingSetDir)
-    
     # Create dictionary of (movie ID, average rating) from precomputed file
     movieIDAvgRating = {}
     with open('extra/movieIDAvgRatings.in', 'r') as f_myfile:
@@ -43,25 +41,6 @@ def netflix_read (r, trainingSetDir) :
     assert movieIDAvgRating
     return movieIDAvgRating
 
-def netflix_train (trainingSetDir):
-    # Compute average ratings for each movie
-    movieIDAvgRating = {}
-    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
-        average = 0.0
-        totalStars = 0.0
-        with open(file, 'r') as f_myfile:
-            lines = f_myfile.readlines()
-            movieID = lines[0].strip(':\r\n')
-            numRatings = len(lines) - 1
-            for custIDRatingDateLine in lines[1:] :
-                custIDRatingDateList = custIDRatingDateLine.strip().split(',')
-                totalStars += float(custIDRatingDateList[1])
-            average = totalStars / numRatings
-            assert 1.0 <= average <= 5.0
-            assert 1 <= int(movieID) <= 17770
-            movieIDAvgRating[movieID] = average
-            print movieID + "=" + str(average)
-
 # ------------
 # netflix_eval
 # ------------
@@ -75,7 +54,7 @@ def netflix_eval (w, movieIDAvgRating, probeFile) :
     menPrefs is a dictionary of (men, array of preferences) pairs
     return the engaged (men, women) pairs
     """
-    import re
+    predList = []
     # Iterate through probe file and make predictions
     with open(probeFile, 'r') as f_myfile:
         lines = f_myfile.readlines()
@@ -84,14 +63,15 @@ def netflix_eval (w, movieIDAvgRating, probeFile) :
             # Look for movieID
             if re.search(':$', line) :
                 movieID = line.strip(':\r\n')
-                print movieID
+                #print movieID
             else :
                 assert movieID
-                #custID
                 #custID = line.strip()
                 pred = movieIDAvgRating[movieID]
-                print pred
-                
+                predList.append(pred)
+                #print pred
+    #print len(predList)  #1408395
+   
 # -------------
 # netflix_print
 # -------------
@@ -126,12 +106,104 @@ def netflix_solve (r, w) :
     
     movieIDAvgRating = {}
     movieIDAvgRating = netflix_read(r, trainingSetDir)
-    netflix_eval(w, movieIDAvgRating, probeFile)
-
+    #netflix_movie_avg(trainingSetDir)
+    #netflix_eval(w, movieIDAvgRating, probeFile)
+    netflix_actual(probeFile, trainingSetDir)
+    #netflix_cust_avg(trainingSetDir)
     
+# ----------------------------
+# parsers for precomputed data
+# ----------------------------
+
+def netflix_movie_avg (trainingSetDir):
+    assert trainingSetDir
+    # Compute average ratings for each movie
+    movieIDAvgRating = {}
+    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
+        average = 0.0
+        totalStars = 0.0
+        with open(file, 'r') as f_myfile:
+            lines = f_myfile.readlines()
+            movieID = lines[0].strip(':\r\n')
+            numRatings = len(lines) - 1
+            for custIDRatingDateLine in lines[1:] :
+                custIDRatingDateList = custIDRatingDateLine.strip().split(',')
+                totalStars += float(custIDRatingDateList[1])
+            average = totalStars / numRatings
+            assert 1.0 <= average <= 5.0
+            assert 1 <= int(movieID) <= 17770
+            movieIDAvgRating[movieID] = average
+            print movieID + "=" + str(average)
+    
+def netflix_cust_avg (trainingSetDir) :
+    assert trainingSetDir
+    # Compute customer averages using dictionary of list {custID: [totalRating, numRatings]}
+    custIDTotalRatingDict = {}
+    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
+        with open(file, 'r') as f_myfile:
+            lines = f_myfile.readlines()
+            movieID = lines[0].strip(':\r\n')
+            for custIDRatingDateLine in lines[1:] :
+                totalRatingNumRatingList = [0, 0]
+                custIDRatingDateList = custIDRatingDateLine.strip().split(',')
+                custID = custIDRatingDateList[0]
+                rating = float(custIDRatingDateList[1])
+                # key custID already exists, so add to that list
+                if custID in custIDTotalRatingDict :
+                    assert 1 <= int(custID) <= 2649429
+                    assert 1.0 <= rating <= 5.0
+                    totalRatingNumRatingList = custIDTotalRatingDict[custID]
+                totalRatingNumRatingList[0] += rating #totalRating
+                totalRatingNumRatingList[1] += 1      #numRatings
+                custIDTotalRatingDict[custID] = totalRatingNumRatingList
+                
+    #custIDAvgDict = {}
+    # compute averages for each computer. store in dict {custID:Avg}
+    for custID in custIDTotalRatingDict :
+        totalRatingNumRatingList = custIDTotalRatingDict[custID]
+        totalRating = totalRatingNumRatingList[0]
+        numRating = totalRatingNumRatingList[1]
+        avgRating = totalRating / numRating
+        #custIDAvgDict[custID] = avgRating
+        print custID + "=" + str(avgRating)
         
+def netflix_actual(probeFile, trainingSetDir):
+    assert probeFile
+    assert trainingSetDir
 
-
+#    actualList = []
+    index = 0
+    with open('extra/probeActualRatings.out', 'w') as out:
+        with open(probeFile, 'r') as f_myfile:
+            lines = f_myfile.readlines()
+            # in probeFile
+            for line in lines : #movieID
+                if re.search(':\r\n', line) :
+                    movieID = line.strip(':\r\n')
+                    trainingFile = "mv_%07d.txt" % int(movieID)
+                    out.write(movieID + ":\n")
+                    index += 1
+                    if index == 100 :   
+                        exit("100 reached")
+                else : #custID
+                    #assert movieID
+                    #assert trainingFile
+                    custID = line.strip()
+                    
+                    # In mv_trainingFile
+                    with open(os.path.join(trainingSetDir, trainingFile), 'r') as f_myfile:
+                        lines = f_myfile.readlines()
+                        #assert lines[0].strip(':\r\n') == movieID
+                        for custIDRatingDateLine in lines[1:] :
+                            custIDRatingDateList = custIDRatingDateLine.strip().split(',')
+                            if custID == custIDRatingDateList[0] :
+                                rating = custIDRatingDateList[1]
+                                out.write(rating + '\n')
+                                #actualList.append(rating) #rating
+                                break
+                            else :
+                                continue
+    #print len(actualList)
 
 
 
