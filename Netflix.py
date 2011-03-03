@@ -11,6 +11,7 @@
 # -------
 
 from __future__ import with_statement
+from RMSE import rmse
 import sys, os, glob, re
 
 
@@ -46,17 +47,27 @@ def netflix_read (r, trainingSetDir) :
             custID = custIDAvgRatingsList[0]
             average = custIDAvgRatingsList[1]
             custIDAvgRating[custID] = average
-    
-    #print len(movieIDAvgRating)
+            
+    # Create list of actual ratings from precomputed file
+    actualRatings = []
+    with open('extra/probeActualRatings.out', 'r') as f_myfile:
+        lines = f_myfile.readlines()
+        for line in lines :
+            if re.search(':', line) : #movieID found
+                continue
+            else : #actual rating found
+                actualRatings.append(line.strip('\n'))
+                
+    assert actualRatings
     assert movieIDAvgRating
     assert custIDAvgRating
-    return [movieIDAvgRating, custIDAvgRating]
+    return [movieIDAvgRating, custIDAvgRating, actualRatings]
 
 # ------------
 # netflix_eval
 # ------------
 
-def netflix_eval (w, movieIDAvgRating, custIDAvgRating, probeFile) :
+def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings) :
     """
     Attempts to match the men with the women such that if a man m
     prefers some woman w more than his wife, then w likes her 
@@ -66,62 +77,54 @@ def netflix_eval (w, movieIDAvgRating, custIDAvgRating, probeFile) :
     return the engaged (men, women) pairs
     """
     
-    predList = []
-    # Iterate through probe file and make predictions
-    with open(probeFile, 'r') as f_myfile:
-        lines = f_myfile.readlines()
-        movieID = ""
-        for line in lines :
-            # Look for movieID
-            if re.search(':', line) :
-                movieID = line.strip(':\r\n')
-                #print movieID
-            else :
-                assert movieID
-                #custID = line.strip()
-                pred = movieIDAvgRating[movieID]
-                predList.append(pred)
-                #print pred
-    #print len(predList)  #1408395
+#    movieAvgPreds = []
+#    # Make predictions based on average rating of movie
+#    # RMSE = 1.0519
+#    with open(probeFile, 'r') as f_myfile:
+#        lines = f_myfile.readlines()
+#        movieID = ""
+#        for line in lines :
+#            if re.search(':', line) :
+#                movieID = line.strip(':\r\n')
+#            else :
+#                assert movieID
+#                pred = movieIDAvgRating[movieID]
+#                movieAvgPreds.append(pred)
+#
+#    print rmse(actualRatings, movieAvgPreds)
+#
+#    custAvgPreds = []
+#    # Make predictions based on average rating of customer
+#    # RMSE = 1.0426
+#    with open(probeFile, 'r') as f_myfile:
+#        lines = f_myfile.readlines()
+#        for line in lines :
+#            if re.search(':', line) :
+#                continue
+#            else :
+#                custID = line.strip()
+#                pred = custIDAvgRating[custID]
+#                 custAvgPreds.append(pred)
+#
+#    print rmse(actualRatings, custAvgPreds)
 
-    predList2 = []
-    # Iterate through probe file and make predictions
+    movieCustAvgPreds = []
+    # Make predictions based on weighted averaged of movie and customer average ratings
+    # RMSE = 1.0033
     with open(probeFile, 'r') as f_myfile:
         lines = f_myfile.readlines()
         movieID = ""
         for line in lines :
-            # Look for movieID
             if re.search(':', line) :
                 movieID = line.strip(':\r\n')
-                #print movieID
             else :
                 assert movieID
                 custID = line.strip()
-                pred = custIDAvgRating[custID]
-                predList2.append(pred)
-                #print pred
-    #print len(predList2)  #1408395
-
-    predList3 = []
-    # Iterate through probe file and make predictions
-    with open(probeFile, 'r') as f_myfile:
-        lines = f_myfile.readlines()
-        movieID = ""
-        for line in lines :
-            # Look for movieID
-            if re.search(':', line) :
-                movieID = line.strip(':\r\n')
-                #print movieID
-            else :
-                assert movieID
-                custID = line.strip()
-                pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID])) / 2
+                pred = (float(movieIDAvgRating[movieID])*0.45 + float(custIDAvgRating[custID])*0.55)
                 assert type(pred) == float
-		predList3.append(pred)
-    #print len(predList2)  #1408395
+                movieCustAvgPreds.append(pred)
 
-    from RMSE import rmse
-    print rmse(predList, predList3)
+    print rmse(actualRatings, movieCustAvgPreds)
 # -------------
 # netflix_print
 # -------------
@@ -156,12 +159,14 @@ def netflix_solve (r, w) :
     
     movieIDAvgRating = {}
     custIDAvgRating = {}
-    [movieIDAvgRating, custIDAvgRating] = netflix_read(r, trainingSetDir)
+    actualRatings = []
+    [movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(r, trainingSetDir)
     assert movieIDAvgRating
     assert custIDAvgRating
+    assert actualRatings
     #netflix_movie_avg(trainingSetDir)
-    netflix_eval(w, movieIDAvgRating, custIDAvgRating, probeFile)
-    #netflix_actual(probeFile, trainingSetDir)
+    netflix_eval(w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings)
+    #netflix_actual_ratings(probeFile, trainingSetDir)
     #netflix_cust_avg(trainingSetDir)
     
 # ----------------------------
@@ -220,7 +225,7 @@ def netflix_cust_avg (trainingSetDir) :
         #custIDAvgDict[custID] = avgRating
         print custID + "=" + str(avgRating)
         
-def netflix_actual(probeFile, trainingSetDir):
+def netflix_actual_ratings(probeFile, trainingSetDir):
     assert probeFile
     assert trainingSetDir
 
