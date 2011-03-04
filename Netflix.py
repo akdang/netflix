@@ -61,13 +61,14 @@ def netflix_read (movieTitlesFile, probeFile, trainingSetDir) :
     
     # Create dictionary of (movie ID, year) from input file
     movieIDYear = {}
-    with open(movieTitlesFile, 'r') as f_myfile:
+    with open('extra/movie_titles_no_nulls.txt', 'r') as f_myfile:
         lines = f_myfile.readlines()
         for line in lines: #movieID, year, title
             movieIDYearList = line.strip().split(',')
             movieID = movieIDYearList[0]
             year = movieIDYearList[1]
             movieIDYear[movieID] = year
+           
     
     #netflix_decade_movie_avg(movieIDYear, movieTitlesFile, trainingSetDir)
 
@@ -243,13 +244,15 @@ def netflix_solve (movieTitlesFile, trainingSetDir, probeFile) :
     assert actualRatings
     assert decadeAvgRating
     
-    #netflix_eval(probeFile, movieIDYear, movieIDAvgRating, custIDAvgRating, actualRatings)
+    netflix_eval(probeFile, movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings)
     
 # ----------------------------
 # parsers for precomputed data
 # ----------------------------
 
 def netflix_decade_calc (year):
+    assert '1890' <= year <= '2005' 
+    decade = ""
     #determine the decade 
     if '1890' <= year <= '1899' :
         decade = '1890s'
@@ -276,6 +279,7 @@ def netflix_decade_calc (year):
     elif '2000' <= year <= '2005':
         decade = '2000s'
     
+    assert decade
     return decade
 
 def netflix_decade_movie_avg (movieIDYear, movieTitlesFile, trainingSetDir):
