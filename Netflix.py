@@ -58,7 +58,7 @@ def netflix_read (r, trainingSetDir) :
 #            else : #actual rating found
 #                actualRatings.append(line.strip('\n'))
                 
-    assert actualRatings
+#    assert actualRatings
     assert movieIDAvgRating
     assert custIDAvgRating
 #    return [movieIDAvgRating, custIDAvgRating, actualRatings]
@@ -162,16 +162,18 @@ def netflix_solve (r, w) :
     custIDAvgRating = {}
     actualRatings = []
     movieIDDict = {}
-#    [movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(r, trainingSetDir)
-#    assert movieIDAvgRating
-#    assert custIDAvgRating
-#    assert actualRatings
-    #netflix_movie_avg(trainingSetDir)
-    #netflix_eval(w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings)
-    #netflix_actual_ratings(probeFile, trainingSetDir)
-    #netflix_cust_avg(trainingSetDir)
+    [movieIDAvgRating, custIDAvgRating] = netflix_read(r, trainingSetDir)
     movieIDDict = netflix_parse_train(trainingSetDir)
     actualRatings = netflix_actual_ratings(probeFile, movieIDDict)
+    assert movieIDAvgRating
+    assert custIDAvgRating
+    assert actualRatings
+    
+    netflix_eval(w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings)
+    #netflix_movie_avg(trainingSetDir)
+    #netflix_actual_ratings(probeFile, trainingSetDir)
+    #netflix_cust_avg(trainingSetDir)
+    
     
 # ----------------------------
 # parsers for precomputed data
@@ -245,7 +247,8 @@ def netflix_actual_ratings(probeFile, movieIDDict):
                 custIDRatingDict = movieIDDict[movieID]
                 rating = custIDRatingDict[custID]
                 actualRatingsList.append(rating)
-                
+    
+    print "actualRatingsList length: ", len(actualRatingsList)
     assert actualRatingsList
     return actualRatingsList
 
@@ -254,7 +257,7 @@ def netflix_parse_train (trainingSetDir):
     # Create dictionary of dictionary {movieID:{custID:rating}}
     movieIDDict = {}
     for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
-        print file
+        #print file
         with open(file, 'r') as f_myfile:
             custIDRatingDict = {}
             lines = f_myfile.readlines()
@@ -266,7 +269,7 @@ def netflix_parse_train (trainingSetDir):
                 custIDRatingDict[custID] = rating
             assert custIDRatingDict
             movieIDDict[movieID] = custIDRatingDict
-        
+    print "movieIDDict length:", len(movieIDDict)    
     assert movieIDDict
     return movieIDDict
 
