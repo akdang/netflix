@@ -49,19 +49,20 @@ def netflix_read (r, trainingSetDir) :
             custIDAvgRating[custID] = average
             
     # Create list of actual ratings from precomputed file
-    actualRatings = []
-    with open('extra/probeActualRatings.out', 'r') as f_myfile:
-        lines = f_myfile.readlines()
-        for line in lines :
-            if re.search(':', line) : #movieID found
-                continue
-            else : #actual rating found
-                actualRatings.append(line.strip('\n'))
+#    actualRatings = []
+#    with open('extra/probeActualRatings.out', 'r') as f_myfile:
+#        lines = f_myfile.readlines()
+#        for line in lines :
+#            if re.search(':', line) : #movieID found
+#                continue
+#            else : #actual rating found
+#                actualRatings.append(line.strip('\n'))
                 
     assert actualRatings
     assert movieIDAvgRating
     assert custIDAvgRating
-    return [movieIDAvgRating, custIDAvgRating, actualRatings]
+#    return [movieIDAvgRating, custIDAvgRating, actualRatings]
+    return [movieIDAvgRating, custIDAvgRating]
 
 # ------------
 # netflix_eval
@@ -120,7 +121,7 @@ def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings
             else :
                 assert movieID
                 custID = line.strip()
-                pred = (float(movieIDAvgRating[movieID])*0.45 + float(custIDAvgRating[custID])*0.55)
+                pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID])) / 2
                 assert type(pred) == float
                 movieCustAvgPreds.append(pred)
 
@@ -160,14 +161,17 @@ def netflix_solve (r, w) :
     movieIDAvgRating = {}
     custIDAvgRating = {}
     actualRatings = []
-    [movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(r, trainingSetDir)
-    assert movieIDAvgRating
-    assert custIDAvgRating
-    assert actualRatings
+    movieIDDict = {}
+#    [movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(r, trainingSetDir)
+#    assert movieIDAvgRating
+#    assert custIDAvgRating
+#    assert actualRatings
     #netflix_movie_avg(trainingSetDir)
-    netflix_eval(w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings)
+    #netflix_eval(w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings)
     #netflix_actual_ratings(probeFile, trainingSetDir)
     #netflix_cust_avg(trainingSetDir)
+    movieIDDict = netflix_parse_train(trainingSetDir)
+    actualRatings = netflix_actual_ratings(probeFile, movieIDDict)
     
 # ----------------------------
 # parsers for precomputed data
@@ -175,7 +179,7 @@ def netflix_solve (r, w) :
 
 def netflix_movie_avg (trainingSetDir):
     assert trainingSetDir
-    # Compute average ratings for each movie
+    # Compute average ratings for each movie, store in dict {movieID:Avg}
     movieIDAvgRating = {}
     for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
         average = 0.0
@@ -225,43 +229,46 @@ def netflix_cust_avg (trainingSetDir) :
         #custIDAvgDict[custID] = avgRating
         print custID + "=" + str(avgRating)
         
-def netflix_actual_ratings(probeFile, trainingSetDir):
+def netflix_actual_ratings(probeFile, movieIDDict):
     assert probeFile
-    assert trainingSetDir
-
-#    actualList = []
-    index = 0
-    out = open('extra/probeActualRatings.out', 'w')
-    #for file in glob.glob(os.path.join('extra/probeFiles/', 'probe_*.txt')) :
+    assert movieIDDict
+    
+    actualRatingsList = []
     with open(probeFile, 'r') as f_myfile:
         lines = f_myfile.readlines()
-        # in probeFile
-        for line in lines : #movieID
-            if re.search(':', line) :
-                movieID = line.strip(':\n')
-                trainingFile = "mv_%07d.txt" % int(movieID)
-                out.write(line)
-                print movieID
+        movieID = ""
+        for line in lines : 
+            if re.search(':', line) : #movieID
+                movieID = line.strip(':\r\n')
             else : #custID
-                #assert movieID
-                #assert trainingFile
                 custID = line.strip()
+                custIDRatingDict = movieIDDict[movieID]
+                rating = custIDRatingDict[custID]
+                actualRatingsList.append(rating)
                 
-                # In mv_trainingFile
-                with open(os.path.join(trainingSetDir, trainingFile), 'r') as f_myfile:
-                    lines = f_myfile.readlines()
-                    #assert lines[0].strip(':\r\n') == movieID
-                    for custIDRatingDateLine in lines[1:] :
-                        custIDRatingDateList = custIDRatingDateLine.split(',')
-                        if custID == custIDRatingDateList[0] :
-                            rating = custIDRatingDateList[1]
-                            out.write(rating + '\n')
-                            #actualList.append(rating) #rating
-                            break
-                        else :
-                            continue
-    #print len(actualList)
+    assert actualRatingsList
+    return actualRatingsList
 
+def netflix_parse_train (trainingSetDir):
+    assert trainingSetDir
+    # Create dictionary of dictionary {movieID:{custID:rating}}
+    movieIDDict = {}
+    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
+        print file
+        with open(file, 'r') as f_myfile:
+            custIDRatingDict = {}
+            lines = f_myfile.readlines()
+            movieID = lines[0].strip(':\r\n')
+            for custIDRatingDateLine in lines[1:] :
+                custIDRatingDateList = custIDRatingDateLine.split(',')
+                custID = custIDRatingDateList[0]
+                rating = custIDRatingDateList[1]
+                custIDRatingDict[custID] = rating
+            assert custIDRatingDict
+            movieIDDict[movieID] = custIDRatingDict
+        
+    assert movieIDDict
+    return movieIDDict
 
 
 
