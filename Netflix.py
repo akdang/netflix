@@ -12,18 +12,17 @@
 
 from __future__ import with_statement
 from RMSE import rmse
-import sys, os, glob, re, time
+import sys, os, glob, re
 
 
 # ------------
 # netflix_read
 # ------------
 
-def netflix_read (r, probeFile, trainingSetDir) :
+def netflix_read (probeFile, trainingSetDir) :
     """
     Creates dictionaries from precomputed cache files
     Also parses training set and probe files to build actual ratings list
-    r is a reader
     probeFile is the path to probe.txt from the command line
     trainingSetDir is the path to the training_set directory from the command line
     return a list containing the average ratings based on movies and customers and the actual ratings
@@ -120,9 +119,8 @@ def netflix_parse_train (trainingSetDir):
 # ------------
 # netflix_eval
 # ------------
-#TODO: do i still need w?
 #TODO: use arrays instead of lists?
-def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings) :
+def netflix_eval (probeFile, movieIDAvgRating, custIDAvgRating, actualRatings) :
     """
     Applies heuristics to predict ratings and calculates the RMSE
     Prints result to file specified in fileOutput variable
@@ -163,7 +161,7 @@ def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings
 #
 #    print rmse(actualRatings, custAvgPreds)
 
-    fileOutput = 'RunNetflix.out'
+    fileOutput = 'RunNetflix.out' #Change this for output file
     # Make predictions based on average of movie and customer average ratings
     # RMSE = 1.003
     movieCustAvgPreds = []
@@ -192,40 +190,28 @@ def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings
 # netflix_solve
 # -------------
 
-def netflix_solve (r, w) :
+def netflix_solve (movieTitlesFile, trainingSetDir, probeFile) :
     """
-    read, eval, print loop
-    r is a reader
-    w is a writer
+    read, eval, print loop.
+    movieTitlesFile is the path to movie_titles.txt from the command line
+    probeFile is the path to probe.txt from the command line
+    trainingSetDir is the path to the training_set directory from the command line
     """
-    s = time.clock()
-    
-    if len(sys.argv) != 4 : 
-        exit("Usage: python RunNetflix.py <movie titles file> <training set directory> <probe file>")
-    else :
-        movieTitlesFile = sys.argv[1]
-        trainingSetDir = sys.argv[2]
-        probeFile = sys.argv[3]
     
     movieIDAvgRating = {}
     custIDAvgRating = {}
     actualRatings = []
     movieIDDict = {}
-    [movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(r, probeFile, trainingSetDir)
+    [movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(probeFile, trainingSetDir)
 
     assert movieIDAvgRating
     assert custIDAvgRating
     assert actualRatings
     
-    netflix_eval(w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings)
+    netflix_eval(probeFile, movieIDAvgRating, custIDAvgRating, actualRatings)
     #netflix_movie_avg(trainingSetDir)
     #netflix_cust_avg(trainingSetDir)
     
-    e = time.clock()
-    print (e - s), "seconds"
-    
-
-
     
 # ----------------------------
 # parsers for precomputed data
