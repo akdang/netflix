@@ -21,13 +21,15 @@ import sys, os, glob, re, time
 
 def netflix_read (r, probeFile, trainingSetDir) :
     """
-    reads the input and parses it into preference dictionaries
+    Creates dictionaries from precomputed cache files
+    Also parses training set and probe files to build actual ratings list
     r is a reader
-    numCouples is the number of couples
-    isWomen indicates if we're iterating over women input
-    return a list of [dict (person, array of preferences) pairs, and dict women ranks]
+    probeFile is the path to probe.txt from the command line
+    trainingSetDir is the path to the training_set directory from the command line
+    return a list containing the average ratings based on movies and customers and the actual ratings
     """
 	
+    # TODO: refactor into separate function
     # Create dictionary of (movie ID, average rating) from precomputed file
     movieIDAvgRating = {}
     with open('extra/movieIDAvgRatings.in', 'r') as f_myfile:
@@ -56,24 +58,83 @@ def netflix_read (r, probeFile, trainingSetDir) :
     assert custIDAvgRating
     assert actualRatings
     return [movieIDAvgRating, custIDAvgRating, actualRatings]
+    
+# --------------------------
+# Helpers for netflix_read
+# --------------------------
+
+def netflix_actual_ratings(probeFile, movieIDDict):
+    """
+    Creates a list of actual ratings based on probe.txt for RMSE calculations
+    probeFile is the path to probe.txt from the command line
+    movieIDDict is a dictionary of dictionaries {movieID:{custID:rating}}
+    return a list of actual ratings
+    """
+    assert probeFile
+    assert movieIDDict
+    
+    actualRatingsList = []
+    with open(probeFile, 'r') as f_myfile:
+        lines = f_myfile.readlines()
+        movieID = ""
+        for line in lines : 
+            if re.search(':', line) : #movieID
+                movieID = line.strip(':\r\n')
+            else : #custID
+                custID = line.strip()
+                custIDRatingDict = movieIDDict[movieID]
+                rating = custIDRatingDict[custID]
+                actualRatingsList.append(rating)
+    
+    #print "actualRatingsList length: ", len(actualRatingsList)
+    assert actualRatingsList
+    return actualRatingsList
+
+def netflix_parse_train (trainingSetDir):
+    """
+    Iterates through training_set/ and creates a dictionary of dictionaries to 
+    facilitate actual rating look ups
+    trainingSetDir is the path to the training_set directory from the command line
+    return a dictionary of dictionaries {movieID:{custID:rating}}
+    """
+    assert trainingSetDir
+    # Create dictionary of dictionaries {movieID:{custID:rating}}
+    movieIDDict = {}
+    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
+        #print file
+        with open(file, 'r') as f_myfile:
+            custIDRatingDict = {}
+            lines = f_myfile.readlines()
+            movieID = lines[0].strip(':\r\n')
+            for custIDRatingDateLine in lines[1:] :
+                custIDRatingDateList = custIDRatingDateLine.split(',')
+                custID = custIDRatingDateList[0]
+                rating = custIDRatingDateList[1]
+                custIDRatingDict[custID] = rating
+            assert custIDRatingDict
+            movieIDDict[movieID] = custIDRatingDict
+    #print "movieIDDict length:", len(movieIDDict)    
+    assert movieIDDict
+    return movieIDDict
 
 # ------------
 # netflix_eval
 # ------------
-
+#TODO: do i still need w?
+#TODO: use arrays instead of lists?
 def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings) :
     """
-    Attempts to match the men with the women such that if a man m
-    prefers some woman w more than his wife, then w likes her 
-    fiance more than m
-    womenPrefs is a dictionary of (women, array of preferences) pairs
-    menPrefs is a dictionary of (men, array of preferences) pairs
-    return the engaged (men, women) pairs
+    Applies heuristics to predict ratings and calculates the RMSE
+    Prints result to file specified in fileOutput variable
+    probeFile is the path to probe.txt from the command line
+    movieIDAvgRating is the dictionary of {movie ID, average rating)
+    custIDAvgRating is the dictionary of (cust ID, average rating)
+    actualRatings is the list of actual customer ratings for RMSE calculation
     """
     
 #    movieAvgPreds = []
 #    # Make predictions based on average rating of movie
-#    # RMSE = 1.0519
+#    # RMSE = 1.052
 #    with open(probeFile, 'r') as f_myfile:
 #        lines = f_myfile.readlines()
 #        movieID = ""
@@ -89,7 +150,7 @@ def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings
 #
 #    custAvgPreds = []
 #    # Make predictions based on average rating of customer
-#    # RMSE = 1.0426
+#    # RMSE = 1.043
 #    with open(probeFile, 'r') as f_myfile:
 #        lines = f_myfile.readlines()
 #        for line in lines :
@@ -102,11 +163,11 @@ def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings
 #
 #    print rmse(actualRatings, custAvgPreds)
 
-    
-    # Make predictions based on weighted averaged of movie and customer average ratings
-    # RMSE = 1.0033
+    fileOutput = 'RunNetflix.out'
+    # Make predictions based on average of movie and customer average ratings
+    # RMSE = 1.003
     movieCustAvgPreds = []
-    with open('RunNetflix.out', 'w') as out: #print to output file
+    with open(fileOutput, 'w') as out: #print to output file
 	 out.write("0.000\n") #placeholder for RMSE at top of file
 	 with open(probeFile, 'r') as f_myfile:
 		lines = f_myfile.readlines()
@@ -117,7 +178,7 @@ def netflix_eval (w, probeFile, movieIDAvgRating, custIDAvgRating, actualRatings
 			   movieID = line.strip(':\r\n')
 		    else :
 			   assert movieID
-			   custID = line.strip()
+			   custID = line.strip() #strip newline
 			   pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID])) / 2
 			   assert type(pred) is float
 			   movieCustAvgPreds.append(pred)
@@ -162,6 +223,9 @@ def netflix_solve (r, w) :
     
     e = time.clock()
     print (e - s), "seconds"
+    
+
+
     
 # ----------------------------
 # parsers for precomputed data
@@ -219,47 +283,6 @@ def netflix_cust_avg (trainingSetDir) :
         #custIDAvgDict[custID] = avgRating
         print custID + "=" + str(avgRating)
         
-def netflix_actual_ratings(probeFile, movieIDDict):
-    assert probeFile
-    assert movieIDDict
-    
-    actualRatingsList = []
-    with open(probeFile, 'r') as f_myfile:
-        lines = f_myfile.readlines()
-        movieID = ""
-        for line in lines : 
-            if re.search(':', line) : #movieID
-                movieID = line.strip(':\r\n')
-            else : #custID
-                custID = line.strip()
-                custIDRatingDict = movieIDDict[movieID]
-                rating = custIDRatingDict[custID]
-                actualRatingsList.append(rating)
-    
-    #print "actualRatingsList length: ", len(actualRatingsList)
-    assert actualRatingsList
-    return actualRatingsList
-
-def netflix_parse_train (trainingSetDir):
-    assert trainingSetDir
-    # Create dictionary of dictionary {movieID:{custID:rating}}
-    movieIDDict = {}
-    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
-        #print file
-        with open(file, 'r') as f_myfile:
-            custIDRatingDict = {}
-            lines = f_myfile.readlines()
-            movieID = lines[0].strip(':\r\n')
-            for custIDRatingDateLine in lines[1:] :
-                custIDRatingDateList = custIDRatingDateLine.split(',')
-                custID = custIDRatingDateList[0]
-                rating = custIDRatingDateList[1]
-                custIDRatingDict[custID] = rating
-            assert custIDRatingDict
-            movieIDDict[movieID] = custIDRatingDict
-    #print "movieIDDict length:", len(movieIDDict)    
-    assert movieIDDict
-    return movieIDDict
 
 
 
