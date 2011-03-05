@@ -12,7 +12,7 @@
 import StringIO
 import unittest
 
-from Netflix import netflix_read, netflix_eval, netflix_solve
+from Netflix import netflix_read, netflix_eval, netflix_solve, netflix_decade_calc, netflix_actual_ratings, netflix_parse_train
 from RMSE import rmse, mean, square_of_difference
 
 # -----------
@@ -20,7 +20,64 @@ from RMSE import rmse, mean, square_of_difference
 # -----------
 
 class TestNetflix (unittest.TestCase) :
+    
+    # --------
+    # Helpers
+    # --------
+    def test_parse_train(self):
+        trainingSetDir = 'test/1_movie_1_cust'
+        movieIDDict = netflix_parse_train(trainingSetDir)
+        self.assert_(movieIDDict == {'1': {'1': '1'}})
+    
+    def test_parse_train2(self):
+        trainingSetDir = 'test/5_movies_5_cust/'
+        movieIDDict = netflix_parse_train(trainingSetDir)
+        self.assert_(movieIDDict == {'1': {'300': '1', '200': '1', '100': '1', '500': '1', '400': '1'}, '3':{'300': '3', '200': '3', '100': '3', '500': '3', '400': '3'}, '2': {'300': '2', '200': '2', '100': '2', '500': '2', '400': '2'}, '5': {'300': '5', '200': '5', '100': '5', '500': '5', '400': '5'}, '4': {'300': '4', '200': '4', '100': '4', '500': '4', '400': '4'}})
+    
+    def test_parse_train3(self):
+        trainingSetDir = 'test/5_movies_1_cust/'
+        movieIDDict = netflix_parse_train(trainingSetDir)
+        self.assert_(movieIDDict == {'1': {'1': '1'}, '3': {'1': '1'}, '2': {'1': '1'}, '5': {'1': '1'}, '4': {'1': '1'}})
+    
+    def test_actual_ratings(self):
+        probeFile = 'test/1_movie_1_cust/probe.txt'
+        trainingSetDir = 'test/1_movie_1_cust'
+        movieIDDict = netflix_parse_train(trainingSetDir)
+        self.assert_(movieIDDict == {'1': {'1': '1'}})
+        
+        actualRatings = netflix_actual_ratings(probeFile, movieIDDict)
+        self.assert_(actualRatings == ['1'])
+        
+    def test_actual_ratings2(self):
+        probeFile = 'test/5_movies_5_cust/probe.txt'
+        trainingSetDir = 'test/5_movies_5_cust/'
+        movieIDDict = netflix_parse_train(trainingSetDir)
+        self.assert_(movieIDDict == {'1': {'300': '1', '200': '1', '100': '1', '500': '1', '400': '1'}, '3':{'300': '3', '200': '3', '100': '3', '500': '3', '400': '3'}, '2': {'300': '2', '200': '2', '100': '2', '500': '2', '400': '2'}, '5': {'300': '5', '200': '5', '100': '5', '500': '5', '400': '5'}, '4': {'300': '4', '200': '4', '100': '4', '500': '4', '400': '4'}})
+        
+        actualRatings = netflix_actual_ratings(probeFile, movieIDDict)
+        self.assert_(actualRatings == ['1', '1', '1', '1', '1', '2', '2', '2', '2', '2', '3', '3', '3', '3', '3', '4', '4', '4', '4', '4', '5', '5', '5', '5', '5'])
+        
+    def test_actual_ratings3(self):
+        probeFile = 'test/5_movies_1_cust/probe.txt'
+        trainingSetDir = 'test/5_movies_1_cust/'
+        movieIDDict = netflix_parse_train(trainingSetDir)
+        self.assert_(movieIDDict == {'1': {'1': '1'}, '3': {'1': '1'}, '2': {'1': '1'}, '5': {'1': '1'}, '4': {'1': '1'}})
 
+        actualRatings = netflix_actual_ratings(probeFile, movieIDDict)
+        self.assert_(actualRatings == ['1', '1', '1', '1', '1'])
+        
+    def test_decade(self):
+        year = '1890'
+        self.assert_(netflix_decade_calc(year) == '1890s')
+    
+    def test_decade2(self):
+        year = '2005'
+        self.assert_(netflix_decade_calc(year) == '2000s')
+    
+    def test_decade3(self):
+        year = '1989'
+        self.assert_(netflix_decade_calc(year) == '1980s')
+    
     # -----
     # RMSE
     # -----

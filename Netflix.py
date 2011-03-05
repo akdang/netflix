@@ -185,7 +185,7 @@ def netflix_actual_ratings(probeFile, movieIDDict):
     """
     assert probeFile
     assert movieIDDict
-    
+
     actualRatingsList = []
     with open(probeFile, 'r') as f_myfile:
         lines = f_myfile.readlines()
@@ -205,10 +205,12 @@ def netflix_actual_ratings(probeFile, movieIDDict):
 def netflix_parse_train (trainingSetDir):
     """
     Iterates through training_set/ and creates a dictionary of dictionaries to 
-    facilitate actual rating look ups
+    facilitate actual rating look ups.  Used with netflix_actual_ratings.
+    Assumes files in trainginSetDir are in the form mv_*.txt
     trainingSetDir is the path to the training_set directory from the command line
     return a dictionary of dictionaries {movieID:{custID:rating}}
     """
+    
     assert trainingSetDir
     # Create dictionary of dictionaries {movieID:{custID:rating}}
     movieIDDict = {}
@@ -221,7 +223,7 @@ def netflix_parse_train (trainingSetDir):
             for custIDRatingDateLine in lines[1:] :
                 custIDRatingDateList = custIDRatingDateLine.split(',')
                 custID = custIDRatingDateList[0]
-                rating = custIDRatingDateList[1]
+                rating = custIDRatingDateList[1].strip('\r\n')
                 custIDRatingDict[custID] = rating
             assert custIDRatingDict
             movieIDDict[movieID] = custIDRatingDict
@@ -230,9 +232,14 @@ def netflix_parse_train (trainingSetDir):
     return movieIDDict
 
 def netflix_decade_calc (year):
+    """
+    Determine the decade given the year 
+    year is a string from 1890 to 2005
+    return the decade
+    """
     assert '1890' <= year <= '2005' 
     decade = ""
-    #determine the decade 
+    
     if '1890' <= year <= '1899' :
         decade = '1890s'
     elif '1900' <= year <= '1909':
@@ -257,6 +264,8 @@ def netflix_decade_calc (year):
         decade = '1990s'
     elif '2000' <= year <= '2005':
         decade = '2000s'
+    else :
+        assert False #Should never reach this line. NULLs removed.
     
     assert decade
     return decade
