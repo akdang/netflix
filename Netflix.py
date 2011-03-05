@@ -95,63 +95,6 @@ def netflix_read (probeFile, trainingSetDir) :
     assert decadeAvgRating
     return [movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings]
     
-# --------------------------
-# Helpers for netflix_read
-# --------------------------
-
-def netflix_actual_ratings(probeFile, movieIDDict):
-    """
-    Creates a list of actual ratings based on probe.txt for RMSE calculations
-    probeFile is the path to probe.txt from the command line
-    movieIDDict is a dictionary of dictionaries {movieID:{custID:rating}}
-    return a list of actual ratings
-    """
-    assert probeFile
-    assert movieIDDict
-    
-    actualRatingsList = []
-    with open(probeFile, 'r') as f_myfile:
-        lines = f_myfile.readlines()
-        movieID = ""
-        for line in lines : 
-            if re.search(':', line) : #movieID
-                movieID = line.strip(':\r\n')
-            else : #custID
-                custID = line.strip()
-                custIDRatingDict = movieIDDict[movieID]
-                rating = custIDRatingDict[custID]
-                actualRatingsList.append(rating)
-    
-    assert actualRatingsList
-    return actualRatingsList
-
-def netflix_parse_train (trainingSetDir):
-    """
-    Iterates through training_set/ and creates a dictionary of dictionaries to 
-    facilitate actual rating look ups
-    trainingSetDir is the path to the training_set directory from the command line
-    return a dictionary of dictionaries {movieID:{custID:rating}}
-    """
-    assert trainingSetDir
-    # Create dictionary of dictionaries {movieID:{custID:rating}}
-    movieIDDict = {}
-    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
-        #print file
-        with open(file, 'r') as f_myfile:
-            custIDRatingDict = {}
-            lines = f_myfile.readlines()
-            movieID = lines[0].strip(':\r\n')
-            for custIDRatingDateLine in lines[1:] :
-                custIDRatingDateList = custIDRatingDateLine.split(',')
-                custID = custIDRatingDateList[0]
-                rating = custIDRatingDateList[1]
-                custIDRatingDict[custID] = rating
-            assert custIDRatingDict
-            movieIDDict[movieID] = custIDRatingDict
-
-    assert movieIDDict
-    return movieIDDict
-
 # ------------
 # netflix_eval
 # ------------
@@ -227,10 +170,64 @@ def netflix_solve (trainingSetDir, probeFile) :
     assert custDecadeAvgRatings
     
     netflix_eval(probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings)
+
+
+# ----------
+# Helpers
+# ----------
+
+def netflix_actual_ratings(probeFile, movieIDDict):
+    """
+    Creates a list of actual ratings based on probe.txt for RMSE calculations
+    probeFile is the path to probe.txt from the command line
+    movieIDDict is a dictionary of dictionaries {movieID:{custID:rating}}
+    return a list of actual ratings
+    """
+    assert probeFile
+    assert movieIDDict
     
-# ----------------------------
-# parsers for precomputed data
-# ----------------------------
+    actualRatingsList = []
+    with open(probeFile, 'r') as f_myfile:
+        lines = f_myfile.readlines()
+        movieID = ""
+        for line in lines : 
+            if re.search(':', line) : #movieID
+                movieID = line.strip(':\r\n')
+            else : #custID
+                custID = line.strip()
+                custIDRatingDict = movieIDDict[movieID]
+                rating = custIDRatingDict[custID]
+                actualRatingsList.append(rating)
+    
+    assert actualRatingsList
+    return actualRatingsList
+
+def netflix_parse_train (trainingSetDir):
+    """
+    Iterates through training_set/ and creates a dictionary of dictionaries to 
+    facilitate actual rating look ups
+    trainingSetDir is the path to the training_set directory from the command line
+    return a dictionary of dictionaries {movieID:{custID:rating}}
+    """
+    assert trainingSetDir
+    # Create dictionary of dictionaries {movieID:{custID:rating}}
+    movieIDDict = {}
+    for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
+        #print file
+        with open(file, 'r') as f_myfile:
+            custIDRatingDict = {}
+            lines = f_myfile.readlines()
+            movieID = lines[0].strip(':\r\n')
+            for custIDRatingDateLine in lines[1:] :
+                custIDRatingDateList = custIDRatingDateLine.split(',')
+                custID = custIDRatingDateList[0]
+                rating = custIDRatingDateList[1]
+                custIDRatingDict[custID] = rating
+            assert custIDRatingDict
+            movieIDDict[movieID] = custIDRatingDict
+
+    assert movieIDDict
+    return movieIDDict
 
 def netflix_decade_calc (year):
     assert '1890' <= year <= '2005' 
@@ -263,6 +260,12 @@ def netflix_decade_calc (year):
     
     assert decade
     return decade
+
+# ----------------------------------------------------------
+# Parsers for precomputed data
+# These were ran once to generate precomputed files in extra/
+# They will not be ran in normal execution
+# ----------------------------------------------------------
 
 def netflix_decade_movie_avg (movieIDYear, trainingSetDir):
     assert trainingSetDir
