@@ -58,7 +58,7 @@ def netflix_read (probeFile, trainingSetDir) :
             average = decadeAvgRatingsList[1]
             movieDecadeAvgRatings[decade] = average
             
-    # Create {custID: {decade:[totalRating, numRatings]}} from precomputed file
+    # Create {custID: {decade:average}} from precomputed file
     custDecadeAvgRatings = {}
     with open('extra/custDecadeAvgRatings.in', 'r') as f_myfile:
         lines = f_myfile.readlines()
@@ -189,7 +189,7 @@ def netflix_eval (probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRa
                    #determine the decade 
                    decade = netflix_decade_calc(year)
                    
-                   pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID]) + float(decadeAvgRating[decade])) / 3
+                   pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID]) + float(movieDecadeAvgRatings[decade]) + float(custDecadeAvgRatings[custID][decade])) / 4
                    assert type(pred) is float
                    movieCustAvgPreds.append(pred)
                    out.write(str(round(pred, 1)) + "\n")
