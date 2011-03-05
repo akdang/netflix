@@ -3,7 +3,6 @@
 # ---------------------------
 # CS 373 Project 3
 # Anh-Khoi Dang - add562
-#
 # ---------------------------
 
 # -------
@@ -19,7 +18,7 @@ import sys, os, glob, re
 # netflix_read
 # ------------
 
-def netflix_read (movieTitlesFile, probeFile, trainingSetDir) :
+def netflix_read (probeFile, trainingSetDir) :
     """
     Creates dictionaries from precomputed cache files
     Also parses training set and probe files to build actual ratings list
@@ -58,6 +57,23 @@ def netflix_read (movieTitlesFile, probeFile, trainingSetDir) :
             decade = decadeAvgRatingsList[0]
             average = decadeAvgRatingsList[1]
             decadeAvgRating[decade] = average
+            
+    # Create {custID: {decade:[totalRating, numRatings]}} from precomputed file
+    custIDDecade = {}
+    with open('extra/custDecadeAvgRatings.in', 'r') as f_myfile:
+        lines = f_myfile.readlines()
+        custID = ""
+        for line in lines :
+            if re.search(':', line) : #custID
+                custID = line.strip(':\r\n')
+            else :
+                assert custID
+                decadeAvgRatingsList = line.strip().split('=')
+                decade = decadeAvgRatingsList[0]
+                average = decadeAvgRatingsList[1]
+                decadeAvgRating[decade] = average
+                #add to dict
+                custIDDecade[custID] = decadeAvgRating
     
     # Create dictionary of (movie ID, year) from input file
     movieIDYear = {}
@@ -68,9 +84,9 @@ def netflix_read (movieTitlesFile, probeFile, trainingSetDir) :
             movieID = movieIDYearList[0]
             year = movieIDYearList[1]
             movieIDYear[movieID] = year
-           
     
-    #netflix_decade_movie_avg(movieIDYear, movieTitlesFile, trainingSetDir)
+    netflix_decade_movie_avg(movieIDYear, trainingSetDir)
+    exit("done")
 
     # Parse training set data and probe data to find actual ratings
     movieIDDict = netflix_parse_train(trainingSetDir)
@@ -153,37 +169,6 @@ def netflix_eval (probeFile, movieIDYear, decadeAvgRating, movieIDAvgRating, cus
     actualRatings is the list of actual customer ratings for RMSE calculation
     """
     
-#    movieAvgPreds = []
-#    # Make predictions based on average rating of movie
-#    # RMSE = 1.052
-#    with open(probeFile, 'r') as f_myfile:
-#        lines = f_myfile.readlines()
-#        movieID = ""
-#        for line in lines :
-#            if re.search(':', line) :
-#                movieID = line.strip(':\r\n')
-#            else :
-#                assert movieID
-#                pred = movieIDAvgRating[movieID]
-#                movieAvgPreds.append(pred)
-#
-#    print rmse(actualRatings, movieAvgPreds)
-#
-#    custAvgPreds = []
-#    # Make predictions based on average rating of customer
-#    # RMSE = 1.043
-#    with open(probeFile, 'r') as f_myfile:
-#        lines = f_myfile.readlines()
-#        for line in lines :
-#            if re.search(':', line) :
-#                continue
-#            else :
-#                custID = line.strip()
-#                pred = custIDAvgRating[custID]
-#                 custAvgPreds.append(pred)
-#
-#    print rmse(actualRatings, custAvgPreds)
-
     outputFile = 'RunNetflix.out' #Change this for output file
     # Make predictions based on average of movie and customer average ratings
     # RMSE = 1.003
@@ -220,14 +205,12 @@ def netflix_eval (probeFile, movieIDYear, decadeAvgRating, movieIDAvgRating, cus
 # netflix_solve
 # -------------
 
-def netflix_solve (movieTitlesFile, trainingSetDir, probeFile) :
+def netflix_solve (trainingSetDir, probeFile) :
     """
     read, eval, print loop.
-    movieTitlesFile is the path to movie_titles.txt from the command line
     probeFile is the path to probe.txt from the command line
     trainingSetDir is the path to the training_set directory from the command line
     """
-    assert movieTitlesFile
     assert trainingSetDir
     assert probeFile
     
@@ -236,7 +219,7 @@ def netflix_solve (movieTitlesFile, trainingSetDir, probeFile) :
     movieIDAvgRating = {}
     custIDAvgRating = {}
     actualRatings = []
-    [movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(movieTitlesFile, probeFile, trainingSetDir)
+    [movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(probeFile, trainingSetDir)
     
     assert movieIDYear
     assert movieIDAvgRating
@@ -244,7 +227,7 @@ def netflix_solve (movieTitlesFile, trainingSetDir, probeFile) :
     assert actualRatings
     assert decadeAvgRating
     
-    netflix_eval(probeFile, movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings)
+    #netflix_eval(probeFile, movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings)
     
 # ----------------------------
 # parsers for precomputed data
@@ -282,25 +265,30 @@ def netflix_decade_calc (year):
     assert decade
     return decade
 
-def netflix_decade_movie_avg (movieIDYear, movieTitlesFile, trainingSetDir):
-    assert movieTitlesFile
+def netflix_decade_movie_avg (movieIDYear, trainingSetDir):
     assert trainingSetDir
     assert movieIDYear
     
-    
-    # Compute decade averages using dictionary of list {decade: [totalRating, numRatings]}
-    decadeTotalRatingDict = {}
+    # Compute decade averages per customer using dict of dict of list {custID: {decade:[totalRating, numRatings]}}
+    custIDDecade = {}
+    decadeDict = {'1890s':[0, 0],'1900s':[0, 0],'1910s':[0, 0],'1920s':[0, 0],'1930s':[0, 0],'1940s':[0, 0],'1950s':[0, 0],'1960s':[0, 0],'1970s':[0, 0],'1980s':[0, 0],'1990s':[0, 0],'2000s':[0, 0]}
     for file in glob.glob(os.path.join(trainingSetDir, 'mv_*.txt')) :
-        print file
+        #print file
         with open(file, 'r') as f_myfile:
             lines = f_myfile.readlines()
             movieID = lines[0].strip(':\r\n')
             for custIDRatingDateLine in lines[1:] :
-                # To avoid memory overflow error, store and update total rating and number of ratings on the fly
-                totalRatingNumRatingList = [0, 0] 
-                #get actual rating
+                #get custID and actual rating
                 custIDRatingDateList = custIDRatingDateLine.strip().split(',')
+                custID = custIDRatingDateList[0]
                 rating = float(custIDRatingDateList[1])
+                assert 1.0 <= rating <= 5.0
+                
+                # Initialize dictionary 
+                if not custID in custIDDecade:
+                    custIDDecade[custID] = decadeDict
+                else : # custID entry already exists, so add to that dict
+                    decadeDict = custIDDecade[custID]
                 
                 #look up year
                 year = movieIDYear[movieID]
@@ -308,26 +296,26 @@ def netflix_decade_movie_avg (movieIDYear, movieTitlesFile, trainingSetDir):
                 #determine the decade 
                 decade = netflix_decade_calc(year)
                 
-                # decade list already exists, so add to that list
-                if decade in decadeTotalRatingDict :
-                    assert 1.0 <= rating <= 5.0
-                    totalRatingNumRatingList = decadeTotalRatingDict[decade]
-                
                 #add to that decade's [totalRating, numRatings]
+                totalRatingNumRatingList = decadeDict[decade]
                 totalRatingNumRatingList[0] += rating #totalRating
                 totalRatingNumRatingList[1] += 1      #numRatings
-                decadeTotalRatingDict[decade] = totalRatingNumRatingList
+                decadeDict[decade] = totalRatingNumRatingList
+                custIDDecade[custID] = decadeDict
+                
+    # compute averages for each decade  
+    for custID in custIDDecade :
+        print custID + ":"
+        decadeDict = custIDDecade[custID]
+        for decade in decadeDict :
+            totalRatingNumRatingList = decadeDict[decade]
+            totalRating = totalRatingNumRatingList[0]
+            if totalRating == 0 :
+                continue
+            numRating = totalRatingNumRatingList[1]
+            avgRating = totalRating / numRating
+            print decade + "=" + str(avgRating)
     
-    # compute averages for each decade
-    for decade in decadeTotalRatingDict :
-        totalRatingNumRatingList = decadeTotalRatingDict[decade]
-        totalRating = totalRatingNumRatingList[0]
-        numRating = totalRatingNumRatingList[1]
-        avgRating = totalRating / numRating
-        print decade + "=" + str(avgRating)
-    
-    assert decadeTotalRatingDict
-    print decadeTotalRatingDict
     
 def netflix_movie_avg (trainingSetDir):
     assert trainingSetDir
