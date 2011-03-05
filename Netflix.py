@@ -49,22 +49,23 @@ def netflix_read (probeFile, trainingSetDir) :
             custIDAvgRating[custID] = average
             
     # Create dictionary of (decade, average rating) from precomputed file
-    decadeAvgRating = {}
-    with open('extra/decadeAvgRatings.in', 'r') as f_myfile:
+    movieDecadeAvgRatings = {}
+    with open('extra/movieDecadeAvgRatings.in', 'r') as f_myfile:
         lines = f_myfile.readlines()
         for line in lines :
             decadeAvgRatingsList = line.strip().split('=')
             decade = decadeAvgRatingsList[0]
             average = decadeAvgRatingsList[1]
-            decadeAvgRating[decade] = average
+            movieDecadeAvgRatings[decade] = average
             
     # Create {custID: {decade:[totalRating, numRatings]}} from precomputed file
-    custIDDecade = {}
+    custDecadeAvgRatings = {}
     with open('extra/custDecadeAvgRatings.in', 'r') as f_myfile:
         lines = f_myfile.readlines()
         custID = ""
         for line in lines :
             if re.search(':', line) : #custID
+                decadeAvgRating = {}
                 custID = line.strip(':\r\n')
             else :
                 assert custID
@@ -72,9 +73,8 @@ def netflix_read (probeFile, trainingSetDir) :
                 decade = decadeAvgRatingsList[0]
                 average = decadeAvgRatingsList[1]
                 decadeAvgRating[decade] = average
-                #add to dict
-                custIDDecade[custID] = decadeAvgRating
-    
+                custDecadeAvgRatings[custID] = decadeAvgRating
+
     # Create dictionary of (movie ID, year) from input file
     movieIDYear = {}
     with open('extra/movie_titles_no_nulls.txt', 'r') as f_myfile:
@@ -84,9 +84,6 @@ def netflix_read (probeFile, trainingSetDir) :
             movieID = movieIDYearList[0]
             year = movieIDYearList[1]
             movieIDYear[movieID] = year
-    
-    netflix_decade_movie_avg(movieIDYear, trainingSetDir)
-    exit("done")
 
     # Parse training set data and probe data to find actual ratings
     movieIDDict = netflix_parse_train(trainingSetDir)
@@ -96,7 +93,7 @@ def netflix_read (probeFile, trainingSetDir) :
     assert custIDAvgRating
     assert actualRatings
     assert decadeAvgRating
-    return [movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings]
+    return [movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings]
     
 # --------------------------
 # Helpers for netflix_read
@@ -159,7 +156,7 @@ def netflix_parse_train (trainingSetDir):
 # netflix_eval
 # ------------
 #TODO: use arrays instead of lists?
-def netflix_eval (probeFile, movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings) :
+def netflix_eval (probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings) :
     """
     Applies heuristics to predict ratings and calculates the RMSE
     Prints result to file specified in outputFile variable
@@ -215,19 +212,21 @@ def netflix_solve (trainingSetDir, probeFile) :
     assert probeFile
     
     movieIDYear = {}
-    decadeAvgRating = {}
+    movieDecadeAvgRatings = {}
     movieIDAvgRating = {}
+    custDecadeAvgRatings = {}
     custIDAvgRating = {}
     actualRatings = []
-    [movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(probeFile, trainingSetDir)
+    [movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(probeFile, trainingSetDir)
     
     assert movieIDYear
     assert movieIDAvgRating
     assert custIDAvgRating
     assert actualRatings
-    assert decadeAvgRating
+    assert movieDecadeAvgRatings
+    assert custDecadeAvgRatings
     
-    #netflix_eval(probeFile, movieIDYear, decadeAvgRating, movieIDAvgRating, custIDAvgRating, actualRatings)
+    netflix_eval(probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings)
     
 # ----------------------------
 # parsers for precomputed data

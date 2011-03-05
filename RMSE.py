@@ -24,7 +24,7 @@ def mean(a) :
     assert 0 <= m <= 16
     return m
     
-def rmse2(a,p) :
+def rmse(a,p) :
     assert type(a) is list
     assert type(p) is list
     assert len(a) == len(p) 
