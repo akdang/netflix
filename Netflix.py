@@ -37,9 +37,8 @@ def netflix_read (probeFile, trainingSetDir) :
     movieIDYear = netflix_parse_precomputed('extra/movie_titles_no_nulls.txt', ',')
 
     # Create dictionary of (decade, average rating) from precomputed file
-    movieDecadeAvgRatings = netflix_parse_precomputed('extra/movieDecadeAvgRatings.in')
+    #movieDecadeAvgRatings = netflix_parse_precomputed('extra/movieDecadeAvgRatings.in')
     
-
     # Create {custID: {decade:average}} from precomputed file
     custDecadeAvgRatings = {}
     with open('extra/custDecadeAvgRatings.in', 'r') as f_myfile:
@@ -64,14 +63,14 @@ def netflix_read (probeFile, trainingSetDir) :
     assert movieIDAvgRating
     assert custIDAvgRating
     assert actualRatings
-    assert decadeAvgRating
-    return [movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings]
+    assert movieIDYear
+    assert custDecadeAvgRatings
+    return [movieIDYear, custDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings]
     
 # ------------
 # netflix_eval
 # ------------
-#TODO: use arrays instead of lists?
-def netflix_eval (probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings) :
+def netflix_eval (probeFile, movieIDYear, custDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings) :
     """
     Applies heuristics to predict ratings and calculates the RMSE
     probeFile is the path to probe.txt from the command line
@@ -148,23 +147,21 @@ def netflix_solve (w, trainingSetDir, probeFile) :
     assert probeFile
     
     movieIDYear = {}
-    movieDecadeAvgRatings = {}
     movieIDAvgRating = {}
     custDecadeAvgRatings = {}
     custIDAvgRating = {}
     actualRatings = []
-    [movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(probeFile, trainingSetDir)
+    [movieIDYear, custDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings] = netflix_read(probeFile, trainingSetDir)
     
     assert movieIDYear
     assert movieIDAvgRating
     assert custIDAvgRating
     assert actualRatings
-    assert movieDecadeAvgRatings
     assert custDecadeAvgRatings
     
     answer_rmse = 0.0
     movieIDpredRatings = {}
-    [answer_rmse, movieIDpredRatings] = netflix_eval(probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings)
+    [answer_rmse, movieIDpredRatings] = netflix_eval(probeFile, movieIDYear, custDecadeAvgRatings, movieIDAvgRating, custIDAvgRating, actualRatings)
     assert answer_rmse
     assert movieIDpredRatings
     
