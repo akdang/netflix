@@ -12,7 +12,7 @@
 import StringIO
 import unittest
 
-from Netflix import netflix_read, netflix_eval, netflix_solve, netflix_decade_calc, netflix_actual_ratings, netflix_parse_train
+from Netflix import netflix_read, netflix_eval, netflix_solve, netflix_decade_calc, netflix_actual_ratings, netflix_parse_train, netflix_parse_precomputed
 from RMSE import rmse, mean, square_of_difference
 
 # -----------

@@ -103,7 +103,12 @@ def netflix_eval (probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRa
                #determine the decade 
                decade = netflix_decade_calc(year)
                
-               pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID]) + float(movieDecadeAvgRatings[decade]) + float(custDecadeAvgRatings[custID][decade])) / 4
+               if decade in custDecadeAvgRatings[custID]:
+                   custDecadeRating = float(custDecadeAvgRatings[custID][decade])
+               else : #use individual customer average if customer didn't rate any movies in that decade
+                   custDecadeRating =  float(custIDAvgRating[custID])
+                
+               pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID]) + float(movieDecadeAvgRatings[decade]) + custDecadeRating) / 4
                assert type(pred) is float
                predRatings.append(pred)
                movieIDpredRatings[movieID] = predRatings
@@ -342,7 +347,7 @@ def netflix_decade_avg (movieIDYear, trainingSetDir):
         for decade in decadeDict :
             totalRatingNumRatingList = decadeDict[decade]
             totalRating = totalRatingNumRatingList[0]
-            if totalRating == 0 :
+            if totalRating == 0 : #customer didn't rate any movies of that decade
                 continue
             numRating = totalRatingNumRatingList[1]
             avgRating = totalRating / numRating
