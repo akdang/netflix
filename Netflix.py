@@ -132,7 +132,7 @@ def netflix_print (w, answer_rmse, movieIDpredRatings) :
     
     w.write(str(round(answer_rmse, 3)) + "\n")
     for movieID in movieIDpredRatings :
-        w.write(movieID + "\n")
+        w.write(movieID + ":\n")
         predRatings = movieIDpredRatings[movieID]
         for pred in predRatings :
             w.write((str(round(pred,1))) + "\n")
