@@ -26,7 +26,7 @@ else :
     trainingSetDir = sys.argv[2]
     probeFile = sys.argv[3]
     
-netflix_solve(trainingSetDir, probeFile)
+netflix_solve(sys.stdout, trainingSetDir, probeFile)
 
 e = time.clock()
 print (e - s), "seconds"
