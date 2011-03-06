@@ -27,11 +27,6 @@ def netflix_read (probeFile, trainingSetDir) :
     return a list containing the average ratings based on movies and customers and the actual ratings
     """
     
-    # Create dictionary of (movie ID, year) from input file
-    movieIDYear = {}
-    netflix_parse_precomputed(movieIDYear, 'extra/movie_titles_no_nulls.txt', ',')
-    netflix_decade_avg(movieIDYear, trainingSetDir)
-    
     # Create dictionary of (movie ID, average rating) from precomputed file
     movieIDAvgRating = {}
     netflix_parse_precomputed(movieIDAvgRating, 'extra/movieIDAvgRatings.in')
@@ -39,6 +34,10 @@ def netflix_read (probeFile, trainingSetDir) :
     # Create dictionary of (cust ID, average rating) from precomputed file
     custIDAvgRating = {}
     netflix_parse_precomputed(custIDAvgRating, 'extra/custIDAvgRatings.in')
+    
+    # Create dictionary of (movie ID, year) from input file
+    movieIDYear = {}
+    netflix_parse_precomputed(movieIDYear, 'extra/movie_titles_no_nulls.txt', ',')
 
     # Create dictionary of (decade, average rating) from precomputed file
     movieDecadeAvgRatings = {}
@@ -86,13 +85,14 @@ def netflix_eval (probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRa
     """
     
     movieIDpredRatings = {} # {movieID:[ratings]} for printing
-    predRatings = []
+    allPredRatings = []
     with open(probeFile, 'r') as f_myfile:
        lines = f_myfile.readlines()
        movieID = ""
        for line in lines :
             if re.search(':', line) : #movieID
-               movieID = line.strip(':\r\n')
+		     predRatings = []
+		     movieID = line.strip(':\r\n')
             else :
                assert movieID
                custID = line.strip() #strip newline
@@ -108,14 +108,17 @@ def netflix_eval (probeFile, movieIDYear, custDecadeAvgRatings, movieDecadeAvgRa
                else : #use individual customer average if customer didn't rate any movies in that decade
                    custDecadeRating =  float(custIDAvgRating[custID])
                 
-               pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID]) + float(movieDecadeAvgRatings[decade]) + custDecadeRating) / 4
+               #pred = (float(movieIDAvgRating[movieID]) + float(custIDAvgRating[custID]) + float(movieDecadeAvgRatings[decade]) + custDecadeRating) / 4
+               pred = (float(movieIDAvgRating[movieID]) + custDecadeRating) / 2		#RMSE = 0.974
+               #pred = (float(custIDAvgRating[custID]) + custDecadeRating) / 2		#RMSE = 1.01
                assert type(pred) is float
                predRatings.append(pred)
+               allPredRatings.append(pred)
                movieIDpredRatings[movieID] = predRatings
                 
-    answer_rmse = rmse(actualRatings, predRatings)
+    answer_rmse = rmse(actualRatings, allPredRatings)
     
-    return [answer_rmse, movieDecadeAvgRatings]
+    return [answer_rmse, movieIDpredRatings]
         
 # -------------
 # netflix_solve
@@ -131,11 +134,10 @@ def netflix_print (w, answer_rmse, movieIDpredRatings) :
     assert movieIDpredRatings
     
     w.write(str(round(answer_rmse, 3)) + "\n")
-    for movieID in movieIDpredRatings :
+    for movieID, predRatings in sorted(movieIDpredRatings.items()) :
         w.write(movieID + ":\n")
-        predRatings = movieIDpredRatings[movieID]
         for pred in predRatings :
-            w.write((str(round(pred,1))) + "\n")
+		  w.write((str(round(pred,1))) + "\n")
 
 # -------------
 # netflix_solve
