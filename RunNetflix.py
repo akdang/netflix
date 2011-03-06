@@ -17,7 +17,7 @@ from Netflix import netflix_read, netflix_eval, netflix_solve
 # ----
 # main
 # ----
-s = time.clock()
+#s = time.clock()
 
 if len(sys.argv) != 4 : 
     exit("Usage: python RunNetflix.py <movie titles file> <training set directory> <probe file>")
@@ -28,5 +28,5 @@ else :
     
 netflix_solve(sys.stdout, trainingSetDir, probeFile)
 
-e = time.clock()
-print (e - s), "seconds"
+#e = time.clock()
+#print (e - s), "seconds"
