@@ -16,11 +16,12 @@ from __future__ import with_statement
 import sys, os, glob, re
 from Netflix import netflix_parse_precomputed, netflix_decade_calc
 
-def netflix_decade_avg (trainingSetDir):
+def netflix_decade_avg (trainingSetDir, w = sys.stdout):
     """
     Compute customer averages per decade that the movie was created.
     Print to standard out or redirect to file using "> extra/movieDecadeAvgRatings.in"
     trainingSetDir is the path to training_set/ from the command line
+    w is a writer
     """
     assert trainingSetDir
     movieIDYear = netflix_parse_precomputed('extra/movie_titles_no_nulls.txt', ',')
@@ -60,23 +61,22 @@ def netflix_decade_avg (trainingSetDir):
                 custIDDecade[custID] = decadeDict
                 
     # compute averages for each decade  
-    for custID in custIDDecade :
-        print custID + ":"
-        decadeDict = custIDDecade[custID]
-        for decade in decadeDict :
-            totalRatingNumRatingList = decadeDict[decade]
+    for custID, decadeDict in sorted(custIDDecade.items()) :
+        w.write( custID + ":\n" )
+        for decade, totalRatingNumRatingList in sorted(decadeDict.items()) :
             totalRating = totalRatingNumRatingList[0]
             if totalRating == 0 : #customer didn't rate any movies of that decade
                 continue
             numRating = totalRatingNumRatingList[1]
             avgRating = totalRating / numRating
-            print decade + "=" + str(avgRating)
+            w.write( decade + "=" + str(avgRating) + "\n")
     
-def netflix_movie_avg (trainingSetDir):
+def netflix_movie_avg (trainingSetDir, w = sys.stdout):
     """
     Compute average rating for each movie
     Print to standard out or redirect to file using "> extra/movieIDAvgRatings.in"
     trainingSetDir is the path to training_set/ from the command line
+    w is a writer
     """
     assert trainingSetDir
     # Compute average ratings for each movie
@@ -93,13 +93,14 @@ def netflix_movie_avg (trainingSetDir):
             average = totalStars / numRatings
             assert 1.0 <= average <= 5.0
             assert 1 <= int(movieID) <= 17770
-            print movieID + "=" + str(average)
+            w.write( movieID + "=" + str(average) + "\n" )
     
-def netflix_cust_avg (trainingSetDir) :
+def netflix_cust_avg (trainingSetDir, w = sys.stdout) :
     """
     Compute average rating for each customer
     Print to standard out or redirect to file using "> extra/custIDAvgRatings.in"
     trainingSetDir is the path to training_set/ from the command line
+    w is a writer
     """
     assert trainingSetDir
     # Compute customer averages using dictionary of list {custID: [totalRating, numRatings]}
@@ -124,9 +125,8 @@ def netflix_cust_avg (trainingSetDir) :
                 custIDTotalRatingDict[custID] = totalRatingNumRatingList
                 
     # compute averages for each customer
-    for custID in custIDTotalRatingDict :
-        totalRatingNumRatingList = custIDTotalRatingDict[custID]
+    for custID, totalRatingNumRatingList in sorted(custIDTotalRatingDict.items()) :
         totalRating = totalRatingNumRatingList[0]
         numRating = totalRatingNumRatingList[1]
         avgRating = totalRating / numRating
-        print custID + "=" + str(avgRating)
+        w.write( custID + "=" + str(avgRating) + "\n" )

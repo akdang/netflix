@@ -22,8 +22,27 @@ from RMSE import rmse, mean, square_of_difference
 class TestNetflix (unittest.TestCase) :
     
     # --------
+    # Parsers
+    # --------
+    
+    # --------
     # Helpers
     # --------
+    def test_parse_precomputed(self):
+        file = 'test/precomputedTest.txt'
+        d = netflix_parse_precomputed(file)
+        self.assert_(d == {'1': '1'})
+    
+    def test_parse_precomputed2(self):
+        file = 'test/precomputedTest2.txt'
+        d = netflix_parse_precomputed(file)
+        self.assert_(d == {'1': '1.4242', '3': '3.6908', '2': '2.4515', '5': '5.2818', '4': '4.8711'})
+    
+    def test_parse_precomputed3(self):
+        file = 'test/precomputedTest3.txt'
+        d = netflix_parse_precomputed(file, ",")
+        self.assert_(d == {'10': '1993', '1': '2002', '3': '1903', '2': '1898', '5': '1984', '4': '1940', '7': '1934', '6': '1938', '9': '1999', '8': '1967'})
+    
     def test_parse_train(self):
         trainingSetDir = 'test/1_movie_1_cust'
         movieIDDict = netflix_parse_train(trainingSetDir)
