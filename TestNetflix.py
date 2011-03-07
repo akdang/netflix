@@ -22,10 +22,6 @@ from RMSE import rmse, mean, square_of_difference
 class TestNetflix (unittest.TestCase) :
     
     # --------
-    # Parsers
-    # --------
-    
-    # --------
     # Helpers
     # --------
     def test_parse_precomputed(self):
